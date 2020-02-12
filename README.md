@@ -1,2 +1,3 @@
 # Onama
-ACM UCM's Backend Workshop Management API
+
+ACM UCM's Backend Calendar Management API
