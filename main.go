@@ -1,34 +1,54 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/gofiber/fiber"
 )
 
 func main() {
 	app := fiber.New()
 
-	app.Get("/", func(c *fiber.Ctx) {
-		c.Send(`{"message": "Hello World!"}`)
+	/**
+
+	/api --> assigns all headers for routes under api route
+
+	GET
+	events --> all calendar events
+	events/:type --> return only a subgroup of all events
+	event/:id --> returns specific event
+
+	POST
+	events --> create multiple new events
+	event --> create a single new event
+
+	PATCH
+	events --> update the data of all events at once
+	events/:type --> update all the events of a single type
+	event/:id --> update a single event
+
+	DELETE
+	events --> completely delete all events (for testing only)[should not be in production]
+	events/:type --> deletes all events under a specific type
+	event/:id --> delete a specific event
+
+	* --> handles all unknown routes
+
+	*/
+
+	// Match all routes starting with /api
+	app.Use("/api", func(c *fiber.Ctx) {
+		c.Set("Access-Control-Allow-Origin", "*")
+		c.Set("Access-Control-Allow-Headers", "X-Requested-With")
+		c.Set("Content-Type", "application/json")
+		c.Next()
 	})
 
-	// GET /john
-	app.Get("/:name", func(c *fiber.Ctx) {
-		fmt.Printf("Hello %s!", c.Params("name"))
-		// => Hello john!
-	})
-
-	// GET /john/18
-	app.Get("/:name/:age?", func(c *fiber.Ctx) {
-		fmt.Printf("Name: %s, Age: %s", c.Params("name"), c.Params("age"))
-		// => Name: john, Age: 18
-	})
-
-	// GET /api/register
-	app.Get("/api/*", func(c *fiber.Ctx) {
-		fmt.Printf("/api/%s", c.Params("*"))
-		// => /api/register
+	// Optional param
+	// Test in your terminal with ==> curl -X POST http://localhost:8080/api/register -d "username=john&password=doe"
+	app.Post("/api/register", func(c *fiber.Ctx) {
+		username := c.Body("username")
+		password := c.Body("password")
+		c.Status(200).Send("username: " + username + ", password: " + password)
+		// ..
 	})
 
 	app.Listen(8080)
