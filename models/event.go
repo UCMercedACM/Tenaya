@@ -1,60 +1,45 @@
 package models
 
 import (
-	"encoding/csv"
-	"encoding/json"
-	"fmt"
-	"log"
-	"os"
-	"strconv"
+	"github.com/go-pg/pg/v9"
 )
 
 type Event struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Time        string `json:"time"`
-	Date        string `json:"date"`
-	Location    string `json:"location"`
-	Description string `json:"description"`
+	ID int64
+	Key int64
+	Name string
+	Description string
+	Type string
+	Date string
+	StartTime string
+	EndTime string
 }
 
 // GetEvents --> Returns list/map of all events
-func (event *Event) GetAllEvents() {
-	return event
+func GetAllEvents() ([]Event, error) {
+	var events []Event
+	_, err := db.Query(&events, `SELECT * FROM events`)
+	return events, err
 }
 
 // GetEvents --> Returns list/map of all events based off the type of events requested
-func (event *Event) GetEvents(eventType string) Event {
-	return event
+func GetEvents(eventType string) ([]Event, error) {
+	var events Event
+	_, err := db.QueryOne(&events, `SELECT * FROM events WHERE id = ?`, id)
+	return events, err
 }
 
 // GetEvent --> Returns specific event based off the id number
-func (event *Event) GetEvent(id int) map[string]interface{} {
-	return event
+func GetEvent(db *pg.DB, id int64) (*Event, error) {
+	var event Event
+	_, err := db.QueryOne(&event, `SELECT * FROM events WHERE id = ?`, id)
+	return &event, err
 }
 
-// CreateEvent --> Creates a new event
-func (event *Event) CreateEvent() {
-	records := [][]string{
-		{"first_name", "last_name", "username"},
-		{"Rob", "Pike", "rob"},
-		{"Ken", "Thompson", "ken"},
-		{"Robert", "Griesemer", "gri"},
-	}
-
-	w := csv.NewWriter(os.Stdout)
-
-	for _, record := range records {
-		if err := w.Write(record); err != nil {
-			log.Fatalln("error writing record to csv:", err)
-		}
-	}
-
-	// Write any buffered data to the underlying writer (standard output).
-	w.Flush()
-
-	if err := w.Error(); err != nil {
-		log.Fatal(err)
-	}
+func CreateEvent(db *pg.DB, event *Event) error {
+	_, err := db.QueryOne(event, `
+		INSERT INTO users (name, emails) VALUES (?name, ?emails)
+		RETURNING id
+	`, event)
+	return err
 }

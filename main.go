@@ -5,9 +5,58 @@ import (
 	"log"
 	"os"
 
+	"github.com/go-pg/pg/v9"
 	"github.com/gofiber/fiber"
 	"github.com/joho/godotenv"
+	// "github.com/go-pg/pg/v9/orm" // Incase we want to use the orm
 )
+
+// Event --> Struct defining the global data structure for all events
+type Event struct {
+	ID          int64
+	Key         int64
+	Name        string
+	Description string
+	Type        string
+	Date        string
+	StartTime   string
+	EndTime     string
+}
+
+// GetAllEvents --> Returns array of all events and errors if they exist
+func GetAllEvents(db *pg.DB) ([]Event, error) {
+	var events []Event
+	_, err := db.Query(&events, `select * from events`)
+	return events, err
+}
+
+// GetEvents --> Returns array of all events based off the type of events requested and errors if they exist
+func GetEvents(db *pg.DB, eventType string) ([]Event, error) {
+	var events []Event
+	_, err := db.Query(&events, `SELECT * FROM events WHERE type = ?`, eventType)
+	return events, err
+}
+
+// GetEvent --> Returns specific event based off the id number
+func (event Event) GetEvent(db *pg.DB, id int64) (*Event, error) {
+	_, err := db.QueryOne(&event, `SELECT * FROM events WHERE id = ?`, id)
+	return &event, err
+}
+
+// CreateEvent --> Returns specific event based off the id number
+func CreateEvent(db *pg.DB, event *Event) error {
+	_, err := db.QueryOne(event, `
+		INSERT INTO events (name, emails) VALUES (?name, ?emails)
+		RETURNING id
+	`, event)
+	return err
+}
+
+func panicIf(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 	// Create new fiber server
@@ -20,12 +69,20 @@ func main() {
 	}
 
 	// Database Credentials
-	dbName := os.Getenv("DB_NAME")
-	dbUsername := os.Getenv("DB_USERNAME")
+	dbAddress := os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT")
+	dbDatabase := os.Getenv("DB_DATABASE")
+	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
-	//! Debug only
-	fmt.Printf("%s: %s, %s\n", dbName, dbUsername, dbPassword)
+	fmt.Printf("%s, %s, %s, %s", dbAddress, dbDatabase, dbUser, dbPassword)
+
+	// Open connection to database
+	db := pg.Connect(&pg.Options{
+		Addr:     dbAddress,
+		User:     dbUser,
+		Password: dbPassword,
+		Database: dbDatabase,
+	})
 
 	// USE: /api --> assigns all headers for routes under api route
 	app.Use("/api", func(c *fiber.Ctx) {
@@ -49,6 +106,11 @@ func main() {
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
 	app.Get("/api/events", func(c *fiber.Ctx) {
+		events, err := GetAllEvents(db)
+		panicIf(err)
+
+		fmt.Printf("Event data: %v", events)
+
 		c.Status(200).Send("All Event Data")
 	})
 
@@ -171,16 +233,15 @@ func main() {
 		c.Status(200).Send("Successfully updated event: " + c.Params("id"))
 	})
 
-	// DELETE: /events --> completely delete all events (for testing only)[should not be in production]
 	/**
 	 * @api {DELETE} /api/events
-	 * @apiDescription Returns only a subgroup of all events
+	 * @apiDescription Deletes all events in the database
 	 * @apiVersion 1.0.0
-	 * @apiName Get Events Based on Type
+	 * @apiName Delete All Events
 	 * @apiGroup Event(s)
-	 * @apiPermission public
+	 * @apiPermission admin
 	 *
-	 * @apiSuccess {Object[]} Returns an object array of all event information.
+	 * @apiSuccess {string} Returns a success message logging that the events were deleted successfully.
 	 *
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
@@ -189,16 +250,15 @@ func main() {
 		c.Status(200).Send("Successfully deleted all events")
 	})
 
-	// DELETE: /events/:type --> deletes all events under a specific type
 	/**
 	 * @api {DELETE} /api/events/:type
-	 * @apiDescription Returns only a subgroup of all events
+	 * @apiDescription Deletes all events within a group type in the database
 	 * @apiVersion 1.0.0
-	 * @apiName Get Events Based on Type
+	 * @apiName Delete All Events Under a Group
 	 * @apiGroup Event(s)
-	 * @apiPermission public
+	 * @apiPermission admin
 	 *
-	 * @apiSuccess {Object[]} Returns an object array of all event information.
+	 * @apiSuccess {string} Returns a success message logging that the events were deleted successfully.
 	 *
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
@@ -207,7 +267,6 @@ func main() {
 		c.Status(200).Send("Successfully deleted all events of type: " + c.Params(("type")))
 	})
 
-	// DELETE: /event/:id --> delete a specific event
 	/**
 	 * @api {DELETE} /api/event/:id
 	 * @apiDescription Deletes all information on a single event

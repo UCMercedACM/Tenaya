@@ -3,8 +3,7 @@ module onama
 go 1.13
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
-	github.com/gofiber/fiber v1.4.3
-	github.com/joho/godotenv v1.3.0
-	golang.org/x/tools/gopls v0.3.2 // indirect
+	github.com/go-pg/pg/v9 v9.1.2 // Postgresql ORM
+	github.com/gofiber/fiber v1.6.0 // Express like server
+	github.com/joho/godotenv v1.3.0 // Environment variable loader
 )
