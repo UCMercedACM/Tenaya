@@ -5,6 +5,8 @@ DOCKER_CMD=$(DOCKER_BUILD)/onama-events
 $(DOCKER_CMD): clean
 	mkdir -p $(DOCKER_BUILD)
 	$(GO_BUILD_ENV) go build -v -o $(DOCKER_CMD) .
+	go mod tidy
+	go mod vendor
 
 clean:
 	rm -rf $(DOCKER_BUILD)

@@ -15,7 +15,7 @@ import (
 
 // Event --> Struct defining the global data structure for all events
 type Event struct {
-	Key         int64 `json:"key"`
+	Key         int64  `json:"key"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Type        string `json:"type"`
@@ -87,10 +87,10 @@ func main() {
 
 	// Open connection to database
 	db := pg.Connect(&pg.Options{
-		Addr:     dbAddress,
-		User:     dbUser,
-		Password: dbPassword,
-		Database: dbDatabase,
+		Addr:            dbAddress,
+		User:            dbUser,
+		Password:        dbPassword,
+		Database:        dbDatabase,
 		ApplicationName: "Onama",
 	})
 
@@ -130,9 +130,9 @@ func main() {
 	 * @apiName Get Events Based on Type
 	 * @apiGroup Event(s)
 	 * @apiPermission public
-	 * 
+	 *
 	 * @param type Defines the type of event
-	 * 
+	 *
 	 * @apiSuccess {Object[]} Returns an object array of all event information.
 	 *
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
@@ -307,6 +307,10 @@ func main() {
 	// * --> handles all unknown routes
 	app.Get("*", func(c *fiber.Ctx) {
 		c.Status(404).Send("Unknown Request")
+	})
+
+	app.Recover(func(c *fiber.Ctx) {
+		c.Status(500).Send(c.Error())
 	})
 
 	app.Listen(8080)
