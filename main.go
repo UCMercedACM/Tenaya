@@ -341,6 +341,13 @@ func main() {
 	app.Recover(func(c *fiber.Ctx) {
 		c.Status(500).Send(c.Error())
 	})
+	
+	port := os.Getenv("PORT")
 
-	app.Listen(8080)
+    if port == "" {
+        log.Fatal("$PORT must be set")
+    }
+
+
+	app.Listen(port)
 }
