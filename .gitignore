@@ -13,6 +13,8 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+.docker_build/
+bin/
 
 # Secrets
 .env

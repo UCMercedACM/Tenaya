@@ -1,0 +1,14 @@
+{
+    "name": "Onama",
+    "description": "ACM UCM's Backend Calendar Management API",
+    "keywords": [
+      "go",
+      "postgresql",
+      "api",
+      "jwt",
+      "gofiber"
+    ],
+    "website": "http://github.com/UCMercedACM/Onama",
+    "repository": "http://github.com/UCMercedACM/Onama"
+  }
+  

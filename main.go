@@ -4,41 +4,48 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/go-pg/pg/v9"
 	"github.com/gofiber/fiber"
+	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/joho/godotenv"
 	// "github.com/go-pg/pg/v9/orm" // Incase we want to use the orm
 )
 
 // Event --> Struct defining the global data structure for all events
 type Event struct {
-	ID          int64
-	Key         int64
-	Name        string
-	Description string
-	Type        string
-	Date        string
-	StartTime   string
-	EndTime     string
+	Key         int64 `json:"key"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Type        string `json:"type"`
+	Date        string `json:"date"`
+	StartTime   string `json:"startTime"`
+	EndTime     string `json:"endTime"`
+}
+
+// Workshop --> Struct defining the global data structure for all events
+type Workshop struct {
+	Key int64 `json:"key"`
 }
 
 // GetAllEvents --> Returns array of all events and errors if they exist
 func GetAllEvents(db *pg.DB) ([]Event, error) {
 	var events []Event
-	_, err := db.Query(&events, `select * from events`)
+	_, err := db.Query(&events, `select key, name, description, type, date, starttime, endtime from events`)
 	return events, err
 }
 
-// GetEvents --> Returns array of all events based off the type of events requested and errors if they exist
-func GetEvents(db *pg.DB, eventType string) ([]Event, error) {
+// GetEventsByType --> Returns array of all events based off the type of events requested and errors if they exist
+func GetEventsByType(db *pg.DB, eventType string) ([]Event, error) {
 	var events []Event
-	_, err := db.Query(&events, `SELECT * FROM events WHERE type = ?`, eventType)
+	_, err := db.Query(&events, `SELECT key, name, description, type, date, starttime, endtime FROM events WHERE type = ?`, eventType)
 	return events, err
 }
 
-// GetEvent --> Returns specific event based off the id number
-func (event Event) GetEvent(db *pg.DB, id int64) (*Event, error) {
+// GetEventByID --> Returns specific event based off the id number
+func GetEventByID(db *pg.DB, id int64) (*Event, error) {
+	var event Event
 	_, err := db.QueryOne(&event, `SELECT * FROM events WHERE id = ?`, id)
 	return &event, err
 }
@@ -59,6 +66,8 @@ func panicIf(err error) {
 }
 
 func main() {
+	fmt.Print("Load Application")
+
 	// Create new fiber server
 	app := fiber.New()
 
@@ -74,7 +83,7 @@ func main() {
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
-	fmt.Printf("%s, %s, %s, %s", dbAddress, dbDatabase, dbUser, dbPassword)
+	fmt.Printf(": %s, %s, %s, %s\n", dbAddress, dbDatabase, dbUser, dbPassword)
 
 	// Open connection to database
 	db := pg.Connect(&pg.Options{
@@ -82,6 +91,7 @@ func main() {
 		User:     dbUser,
 		Password: dbPassword,
 		Database: dbDatabase,
+		ApplicationName: "Onama",
 	})
 
 	// USE: /api --> assigns all headers for routes under api route
@@ -109,9 +119,8 @@ func main() {
 		events, err := GetAllEvents(db)
 		panicIf(err)
 
-		fmt.Printf("Event data: %v", events)
-
 		c.Status(200).Send("All Event Data")
+		c.JSON(events)
 	})
 
 	/**
@@ -121,14 +130,20 @@ func main() {
 	 * @apiName Get Events Based on Type
 	 * @apiGroup Event(s)
 	 * @apiPermission public
-	 *
+	 * 
+	 * @param type Defines the type of event
+	 * 
 	 * @apiSuccess {Object[]} Returns an object array of all event information.
 	 *
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
 	app.Get("/api/events/:type", func(c *fiber.Ctx) {
+		events, err := GetEventsByType(db, c.Params("type"))
+		panicIf(err)
+
 		c.Status(200).Send("Event Data for: " + c.Params("type"))
+		c.JSON(events)
 	})
 
 	/**
@@ -145,7 +160,12 @@ func main() {
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
 	app.Get("/api/event/:id", func(c *fiber.Ctx) {
+		id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+		event, err := GetEventByID(db, id)
+		panicIf(err)
+
 		c.Status(200).Send("Displaying Event Data for: " + c.Params("id"))
+		c.JSON(event)
 	})
 
 	/**
