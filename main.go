@@ -15,13 +15,14 @@ import (
 
 // Event --> Struct defining the global data structure for all events
 type Event struct {
-	Key         int64  `json:"key"`
+	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Type        string `json:"type"`
 	Date        string `json:"date"`
 	StartTime   string `json:"startTime"`
 	EndTime     string `json:"endTime"`
+	CreatedAt   string `json:"createdAt"`
 }
 
 // Workshop --> Struct defining the global data structure for all events
@@ -32,14 +33,14 @@ type Workshop struct {
 // GetAllEvents --> Returns array of all events and errors if they exist
 func GetAllEvents(db *pg.DB) ([]Event, error) {
 	var events []Event
-	_, err := db.Query(&events, `select key, name, description, type, date, starttime, endtime from events`)
+	_, err := db.Query(&events, `select * from events`)
 	return events, err
 }
 
 // GetEventsByType --> Returns array of all events based off the type of events requested and errors if they exist
 func GetEventsByType(db *pg.DB, eventType string) ([]Event, error) {
 	var events []Event
-	_, err := db.Query(&events, `SELECT key, name, description, type, date, starttime, endtime FROM events WHERE type = ?`, eventType)
+	_, err := db.Query(&events, `SELECT * FROM events WHERE type = ?`, eventType)
 	return events, err
 }
 
@@ -51,13 +52,16 @@ func GetEventByID(db *pg.DB, id int64) (*Event, error) {
 }
 
 // CreateEvent --> Returns specific event based off the id number
-func CreateEvent(db *pg.DB, event *Event) error {
+func CreateEvent(db *pg.DB, event Event) error {
+	fmt.Println(event)
 	_, err := db.QueryOne(event, `
-		INSERT INTO events (name, emails) VALUES (?name, ?emails)
+		INSERT INTO events (name, description, type, date, start_time, end_time) VALUES (?name, ?description, ?type, ?date, ?start_time, ?end_time)
 		RETURNING id
 	`, event)
 	return err
 }
+
+// INSERT INTO events (name, description, type, date, starttime, endtime) VALUES ("test event", "This is a test event", "test", "February 14, 2020", "12:00)
 
 func panicIf(err error) {
 	if err != nil {
@@ -72,7 +76,7 @@ func main() {
 	app := fiber.New()
 
 	// Loads environment variables and handles errors
-	err := godotenv.Load()
+	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -94,6 +98,18 @@ func main() {
 		ApplicationName: "Onama",
 	})
 
+	// Check if event table has already been created and create if it has not
+	db.Exec(`CREATE TABLE IF NOT EXISTS EVENTS (
+		ID serial PRIMARY KEY NOT NULL, 
+		name varchar(255) NOT NULL, 
+		description varchar(255), 
+		type varchar(255), 
+		date varchar(255), 
+		start_time varchar(255), 
+		end_time varchar(255), 
+		created_at TIMESTAMPTZ DEFAULT NOW()
+	);`)
+
 	// USE: /api --> assigns all headers for routes under api route
 	app.Use("/api", func(c *fiber.Ctx) {
 		c.Set("Access-Control-Allow-Origin", "*")
@@ -101,6 +117,9 @@ func main() {
 		c.Set("Content-Type", "application/json")
 		c.Next()
 	})
+
+	app.Static("templates/index.html")
+	app.Static("/static", "static")
 
 	/**
 	 * @api {GET} /api/events
@@ -181,7 +200,7 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Post("/events", func(c *fiber.Ctx) {
+	app.Post("/api/events", func(c *fiber.Ctx) {
 		c.Status(200).Send("Successfully created new events")
 	})
 
@@ -198,8 +217,18 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Post("/event", func(c *fiber.Ctx) {
+	app.Post("/api/event", func(c *fiber.Ctx) {
+		var event Event
+
+		if err := c.BodyParser(&event); err != nil {
+			panicIf(err)
+		}
+
+		err := CreateEvent(db, event)
+		panicIf(err)
+
 		c.Status(200).Send("Successfully created a new event")
+		c.JSON(c.BodyParser(event))
 	})
 
 	/**
@@ -215,7 +244,7 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Patch("/events", func(c *fiber.Ctx) {
+	app.Patch("/api/events", func(c *fiber.Ctx) {
 		c.Status(200).Send("Successfully updated all events")
 	})
 
@@ -232,7 +261,7 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Patch("/events/:type", func(c *fiber.Ctx) {
+	app.Patch("/api/events/:type", func(c *fiber.Ctx) {
 		c.Status(200).Send("Successfully updated a all events with type: " + c.Params("type"))
 	})
 
@@ -249,7 +278,7 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Patch("/event/:id", func(c *fiber.Ctx) {
+	app.Patch("/api/event/:id", func(c *fiber.Ctx) {
 		c.Status(200).Send("Successfully updated event: " + c.Params("id"))
 	})
 
@@ -266,7 +295,7 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Delete("/events", func(c *fiber.Ctx) {
+	app.Delete("/api/events", func(c *fiber.Ctx) {
 		c.Status(200).Send("Successfully deleted all events")
 	})
 
@@ -283,7 +312,7 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Delete("/events/:type", func(c *fiber.Ctx) {
+	app.Delete("/api/events/:type", func(c *fiber.Ctx) {
 		c.Status(200).Send("Successfully deleted all events of type: " + c.Params(("type")))
 	})
 
@@ -300,7 +329,7 @@ func main() {
 	 * @apiError (Unauthorized 401)  Unauthorized  Only authenticated users can access the data
 	 * @apiError (Forbidden 403)     Forbidden     Only admins can access the data
 	 */
-	app.Delete("/event/:id", func(c *fiber.Ctx) {
+	app.Delete("/api/event/:id", func(c *fiber.Ctx) {
 		c.Status(200).Send("Successfully deleted event with id: " + c.Params("id"))
 	})
 
