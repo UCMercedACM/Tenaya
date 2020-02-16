@@ -18,5 +18,4 @@ templates/*.gz
 bin/
 
 # Secrets
-.env
 .env.*
