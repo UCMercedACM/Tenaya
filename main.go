@@ -70,24 +70,23 @@ func panicIf(err error) {
 }
 
 func main() {
-	fmt.Print("Load Application")
-
-	// Create new fiber server
-	app := fiber.New()
-
 	// Loads environment variables and handles errors
-	// err := godotenv.Load(".env")
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
 
 	// Database Credentials
 	dbAddress := os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT")
 	dbDatabase := os.Getenv("DB_DATABASE")
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
-
-	fmt.Printf(": %s, %s, %s, %s\n", dbAddress, dbDatabase, dbUser, dbPassword)
 
 	// Open connection to database
 	db := pg.Connect(&pg.Options{
@@ -109,6 +108,9 @@ func main() {
 		end_time varchar(255), 
 		created_at TIMESTAMPTZ DEFAULT NOW()
 	);`)
+
+	// Create new fiber server
+	app := fiber.New()
 
 	// USE: /api --> assigns all headers for routes under api route
 	app.Use("/api", func(c *fiber.Ctx) {
@@ -341,12 +343,6 @@ func main() {
 	app.Recover(func(c *fiber.Ctx) {
 		c.Status(500).Send(c.Error())
 	})
-	
-	port := os.Getenv("PORT")
-
-    if port == "" {
-        log.Fatal("$PORT must be set")
-    }
 
 	app.Listen(port)
 }
