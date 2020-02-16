@@ -76,10 +76,10 @@ func main() {
 	app := fiber.New()
 
 	// Loads environment variables and handles errors
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// err := godotenv.Load(".env")
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file")
+	// }
 
 	// Database Credentials
 	dbAddress := os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT")
@@ -124,7 +124,7 @@ func main() {
 	/**
 	 * @api {GET} /api/events
 	 * @apiDescription Returns all calendar events
-	 * @apiVersion 1.0.0
+	 * @apiVersion 1.1.0
 	 * @apiName Get Events
 	 * @apiGroup Event(s)
 	 * @apiPermission public
@@ -145,7 +145,7 @@ func main() {
 	/**
 	 * @api {GET} /api/events/:type
 	 * @apiDescription Returns only a subgroup of all events
-	 * @apiVersion 1.0.0
+	 * @apiVersion 1.1.0
 	 * @apiName Get Events Based on Type
 	 * @apiGroup Event(s)
 	 * @apiPermission public
@@ -168,7 +168,7 @@ func main() {
 	/**
 	 * @api {GET} /api/event/:id
 	 * @apiDescription Returns a single event
-	 * @apiVersion 1.0.0
+	 * @apiVersion 1.1.0
 	 * @apiName Get Events Based on ID
 	 * @apiGroup Event(s)
 	 * @apiPermission public
@@ -207,7 +207,7 @@ func main() {
 	/**
 	 * @api {POST} /api/event
 	 * @apiDescription Create a new event
-	 * @apiVersion 1.0.0
+	 * @apiVersion 1.1.0
 	 * @apiName Create Event
 	 * @apiGroup Event(s)
 	 * @apiPermission public
@@ -347,7 +347,6 @@ func main() {
     if port == "" {
         log.Fatal("$PORT must be set")
     }
-
 
 	app.Listen(port)
 }
