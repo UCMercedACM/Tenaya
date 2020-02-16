@@ -1,1 +1,1 @@
-web: bin/onama-events
+web: bin/onama
