@@ -11,7 +11,7 @@ First of all, [download](https://golang.org/dl/) and install Go. `1.12` or highe
 Clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/UCMercedACM/Onama
+git clone https://github.com/UCMercedACM/Tenaya
 ```
 
 Install all the necessary packages:
