@@ -1,6 +1,6 @@
 {
-    "name": "Onama",
-    "description": "ACM UCM's Backend Calendar Management API",
+    "name": "Tenaya",
+    "description": "ACM UCM's Events Management API",
     "keywords": [
       "go",
       "postgresql",
@@ -8,7 +8,6 @@
       "jwt",
       "gofiber"
     ],
-    "website": "http://github.com/UCMercedACM/Onama",
-    "repository": "http://github.com/UCMercedACM/Onama"
+    "website": "https://ucmercedacm.github.io/Chapter-Website/",
+    "repository": "http://github.com/UCMercedACM/Tenaya"
   }
-  

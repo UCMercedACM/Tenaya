@@ -1,1 +1,1 @@
-web: bin/onama
+web: bin/tenaya
