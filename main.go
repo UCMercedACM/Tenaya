@@ -7,7 +7,10 @@ import (
 	"strconv"
 
 	"github.com/go-pg/pg/v9"
-	"github.com/gofiber/fiber"
+  "github.com/gofiber/fiber"
+  "github.com/gofiber/helmet"
+  "github.com/gofiber/cors"
+  "github.com/gofiber/recover"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/joho/godotenv"
 	// "github.com/go-pg/pg/v9/orm" // Incase we want to use the orm
@@ -94,23 +97,37 @@ func main() {
 		User:            dbUser,
 		Password:        dbPassword,
 		Database:        dbDatabase,
-		ApplicationName: "Onama",
+		ApplicationName: "Tenaya",
 	})
 
 	// Check if event table has already been created and create if it has not
 	db.Exec(`CREATE TABLE IF NOT EXISTS EVENTS (
-		ID serial PRIMARY KEY NOT NULL, 
-		name varchar(255) NOT NULL, 
-		description varchar(255), 
-		type varchar(255), 
-		date varchar(255), 
-		start_time varchar(255), 
-		end_time varchar(255), 
+		ID serial PRIMARY KEY NOT NULL,
+		name varchar(255) NOT NULL,
+		description varchar(255),
+		type varchar(255),
+		date varchar(255),
+		start_time varchar(255),
+		end_time varchar(255),
 		created_at TIMESTAMPTZ DEFAULT NOW()
 	);`)
 
 	// Create new fiber server
-	app := fiber.New()
+  app := fiber.New()
+
+  // Helmet to protect cross-site scripting (XSS) attack
+  app.Use(helmet.New())
+
+  // Gives web servers cross-domain access controls, which enable secure cross-domain data transfers
+  app.Use(cors.New())
+
+  // Recover from panic errors within any route
+	app.Use(recover.New(recover.Config{
+		Handler: func(c *fiber.Ctx, err error) {
+			c.SendString(err.Error())
+			c.SendStatus(500)
+		},
+	}))
 
 	// USE: /api --> assigns all headers for routes under api route
 	app.Use("/api", func(c *fiber.Ctx) {
@@ -120,8 +137,7 @@ func main() {
 		c.Next()
 	})
 
-	app.Static("templates/index.html")
-	app.Static("/static", "static")
+	app.Static("/", "templates/index.html")
 
 	/**
 	 * @api {GET} /api/events
@@ -338,10 +354,6 @@ func main() {
 	// * --> handles all unknown routes
 	app.Get("*", func(c *fiber.Ctx) {
 		c.Status(404).Send("Unknown Request")
-	})
-
-	app.Recover(func(c *fiber.Ctx) {
-		c.Status(500).Send(c.Error())
 	})
 
 	app.Listen(port)
